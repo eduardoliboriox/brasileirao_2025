@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div>
+  <!-- Tabs -->
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+    <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-class" data-bs-toggle="tab" data-bs-target="#classificacao" type="button" role="tab">Classificação</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-jogos" data-bs-toggle="tab" data-bs-target="#jogos" type="button" role="tab">Registrar / Histórico</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-futuros" data-bs-toggle="tab" data-bs-target="#futuros" type="button" role="tab">Jogos Futuros</button></li>
+    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-cartoes" data-bs-toggle="tab" data-bs-target="#cartoes" type="button" role="tab">Cartões</button></li>
+  </ul>
+
+  <div class="tab-content mt-3">
+    <!-- CLASSIFICAÇÃO -->
+    <div class="tab-pane fade show active" id="classificacao" role="tabpanel">
+      <div id="classificacao_container">Carregando...</div>
+      <small class="text-muted">Tabela atualizada dinâmicamente.</small>
+    </div>
+
+    <!-- JOGOS -->
+    <div class="tab-pane fade" id="jogos" role="tabpanel">
+      <h5>Adicionar Resultado</h5>
+      <form id="form_add_result" class="row g-2 mb-3">
+        <div class="col-md-2"><input name="data" class="form-control" placeholder="Data (DD/MM/AAAA)" value="{{ (None)|default('') }}"></div>
+
+        <div class="col-md-3">
+          <select name="time1" class="form-select" required>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-1"><input name="g1" type="number" class="form-control" value="0" required></div>
+
+        <div class="col-md-3">
+          <select name="time2" class="form-select" required>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-1"><input name="g2" type="number" class="form-control" value="0" required></div>
+
+        <div class="col-md-2"><button class="btn btn-success" type="submit">Adicionar</button></div>
+      </form>
+
+      <h5>Histórico de Jogos</h5>
+      <div id="matches_container">Carregando...</div>
+
+      <hr>
+      <h6>Editar / Excluir resultado</h6>
+      <form id="form_edit_result" class="row g-2">
+        <div class="col-md-2"><input name="id" class="form-control" placeholder="ID do resultado" required></div>
+        <div class="col-md-2"><input name="data" class="form-control" placeholder="Data (DD/MM/AAAA)"></div>
+        <div class="col-md-2">
+          <select name="time1" class="form-select">
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1"><input name="g1" type="number" class="form-control"></div>
+        <div class="col-md-2">
+          <select name="time2" class="form-select">
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1"><input name="g2" type="number" class="form-control"></div>
+        <div class="col-md-12 mt-2">
+          <button id="btn_update_result" class="btn btn-primary">Atualizar</button>
+          <button id="btn_delete_result" class="btn btn-danger">Excluir</button>
+        </div>
+      </form>
+      <div id="jogos_msg" class="mt-2"></div>
+    </div>
+
+    <!-- FUTUROS -->
+    <div class="tab-pane fade" id="futuros" role="tabpanel">
+      <h5>Adicionar Jogo Futuro</h5>
+      <form id="form_add_futuro" class="row g-2 mb-3">
+        <div class="col-md-2"><input name="data" class="form-control" placeholder="Data (DD/MM/AAAA)" required></div>
+        <div class="col-md-4">
+          <select name="time1" class="form-select" required>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select name="time2" class="form-select" required>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2"><button class="btn btn-warning" type="submit">Adicionar</button></div>
+      </form>
+
+      <h6>Jogos Futuros</h6>
+      <div id="futuros_container">Carregando...</div>
+
+      <hr>
+      <h6>Analisar um time</h6>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select id="fut_time_sel" class="form-select">
+            <option value="">-- selecione --</option>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2"><button id="btn_analise_fut" class="btn btn-info">Analisar</button></div>
+      </div>
+      <div id="fut_resumo" class="mt-3"></div>
+      <div id="fut_jogos" class="mt-2"></div>
+      <div id="fut_probs" class="mt-2"></div>
+    </div>
+
+    <!-- CARTÕES -->
+    <div class="tab-pane fade" id="cartoes" role="tabpanel">
+      <h5>Registrar Cartão</h5>
+      <form id="form_add_cartao" class="row g-2 mb-3">
+        <div class="col-md-3">
+          <select name="time" class="form-select" required>
+            {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4"><input name="jogador" class="form-control" placeholder="Nome do Jogador" required></div>
+        <div class="col-md-2"><input name="amarelo" type="number" class="form-control" placeholder="Amarelos" value="0" required></div>
+        <div class="col-md-2"><input name="vermelho" type="number" class="form-control" placeholder="Vermelhos" value="0" required></div>
+        <div class="col-md-1"><button class="btn btn-danger" type="submit">Registrar</button></div>
+      </form>
+
+      <div id="cartoes_container">Carregando...</div>
+      <div id="cartoes_aviso" class="mt-2"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Carrega conteúdo inicial das abas
+  async function load_all() {
+    document.getElementById('classificacao_container').innerHTML = await (await fetch('/api/classificacao')).text();
+    document.getElementById('matches_container').innerHTML = await (await fetch('/api/matches')).text();
+    document.getElementById('futuros_container').innerHTML = await (await fetch('/api/jogos_futuros')).text();
+    document.getElementById('cartoes_container').innerHTML = await (await fetch('/api/cartoes')).text();
+  }
+
+  window.addEventListener('load', () => {
+    load_all();
+
+    // ADD RESULT
+    document.getElementById('form_add_result').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/action/add_result', { method: 'POST', body: form });
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('classificacao_container').innerHTML = j.classificacao_html;
+        document.getElementById('matches_container').innerHTML = j.matches_html;
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-success">Resultado adicionado.</div>';
+        e.target.reset();
+      } else {
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-danger">'+j.msg+'</div>';
+      }
+    });
+
+    // UPDATE
+    document.getElementById('btn_update_result').addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const form = new FormData(document.getElementById('form_edit_result'));
+      const res = await fetch('/action/update_result', { method: 'POST', body: form });
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('classificacao_container').innerHTML = j.classificacao_html;
+        document.getElementById('matches_container').innerHTML = j.matches_html;
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-success">'+j.msg+'</div>';
+      } else {
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-danger">'+j.msg+'</div>';
+      }
+    });
+
+    // DELETE
+    document.getElementById('btn_delete_result').addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const form = new FormData(document.getElementById('form_edit_result'));
+      const res = await fetch('/action/delete_result', { method: 'POST', body: form });
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('classificacao_container').innerHTML = j.classificacao_html;
+        document.getElementById('matches_container').innerHTML = j.matches_html;
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-success">'+j.msg+'</div>';
+      } else {
+        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-danger">'+j.msg+'</div>';
+      }
+    });
+
+    // ADD FUTURO
+    document.getElementById('form_add_futuro').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/action/add_futuro', { method: 'POST', body: form });
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('futuros_container').innerHTML = j.futuros_html;
+      }
+    });
+
+    // ANALISE FUTUROS
+    document.getElementById('btn_analise_fut').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const sel = document.getElementById('fut_time_sel').value;
+      if (!sel) return alert('Selecione um time.');
+      const res = await fetch('/action/get_fut_analysis?time=' + encodeURIComponent(sel));
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('fut_resumo').innerHTML = '<div class="alert alert-info">'+j.resumo+'</div>';
+        document.getElementById('fut_jogos').innerHTML = j.jogos_html;
+        document.getElementById('fut_probs').innerHTML = j.prob_html;
+      }
+    });
+
+    // ADD CARTAO
+    document.getElementById('form_add_cartao').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/action/add_cartao', { method: 'POST', body: form });
+      const j = await res.json();
+      if (j.success) {
+        document.getElementById('cartoes_container').innerHTML = j.cartoes_html;
+        document.getElementById('cartoes_aviso').innerHTML = j.aviso ? '<div class="alert alert-warning">'+j.aviso+'</div>' : '';
+        e.target.reset();
+      }
+    });
+
+  });
+</script>
+{% endblock %}
