@@ -192,3 +192,50 @@ h1, h2, h3 {
   color: #c1121f;
   font-weight: bold;
 }
+
+/* ======= AJUSTE PARA TABELAS DE JOGOS FUTUROS ======= */
+#futuros_container table td,
+#fut_jogos table td {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+}
+
+#futuros_container table th,
+#fut_jogos table th {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+/* ======= AJUSTE PARA TABELAS DE JOGOS FUTUROS ======= */
+#futuros_container table td,
+#fut_jogos table td {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+}
+
+#futuros_container table th,
+#fut_jogos table th {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+/* ======= AJUSTE PARA TABELA DE CARTÕES ======= */
+#cartoes_container table td,
+#cartoes_container table th {
+  white-space: nowrap;        /* impede quebra de linha */
+  font-size: 0.85rem;         /* reduz levemente a fonte */
+  padding: 4px 6px;           /* diminui o padding */
+}
+
+/* aplica truncamento com reticências apenas à coluna de jogador */
+#cartoes_container table td:nth-child(3) {
+  max-width: 160px;           /* largura limite para nomes */
+  overflow: hidden;
+  text-overflow: ellipsis;    /* adiciona "..." se passar do limite */
+  white-space: nowrap;
+}
+
+
+
