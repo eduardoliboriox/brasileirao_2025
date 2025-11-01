@@ -1,3 +1,194 @@
-body { background: #f8f9fa; }
-table { font-size: 0.9rem; }
+/* ======= GERAL ======= */
+body {
+  background: #f8f9fa;
+  font-family: "Segoe UI", Roboto, sans-serif;
+  color: #212529;
+  margin: 0;
+  padding: 0;
+}
 
+table {
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+/* Centraliza título e conteúdo geral */
+h1, h2, h3 {
+  text-align: center;
+}
+
+.nav-tabs {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ======= CLASSIFICAÇÃO ======= */
+#classificacao_container {
+  text-align: center;
+  overflow-x: auto; /* rolagem horizontal no celular */
+  padding: 0 5px; /* pequeno respiro nas bordas */
+  width: 100%;
+  max-width: 100%;
+}
+
+#classificacao_container table {
+  border-collapse: collapse;
+  width: 100%;        /* <<< usa toda a largura da tela */
+  min-width: 650px;   /* <<< garante legibilidade mínima */
+  margin: 0;          /* <<< remove margens laterais */
+}
+
+#classificacao_container th,
+#classificacao_container td {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ======= CORES DAS POSIÇÕES ======= */
+.pos-top4 {
+  background-color: #006400 !important; /* verde escuro */
+  color: white !important;
+  font-weight: bold;
+}
+
+.pos-liberta {
+  background-color: #00a86b !important; /* verde claro */
+  color: white !important;
+  font-weight: bold;
+}
+
+.pos-sulamericana {
+  background-color: #003366 !important; /* azul escuro */
+  color: white !important;
+  font-weight: bold;
+}
+
+.pos-rebaixado {
+  background-color: #cc0000 !important; /* vermelho */
+  color: white !important;
+  font-weight: bold;
+}
+
+/* ======= RESPONSIVIDADE ======= */
+@media (max-width: 768px) {
+  body {
+    padding: 0;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+  }
+
+  #classificacao_container table {
+    font-size: 0.8rem;
+    min-width: 500px;
+  }
+
+  .nav-tabs .nav-link {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+}
+
+/* força o layout a usar 100% da largura real */
+#main-content, #classificacao_container, table {
+  max-width: 100vw !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#btn_toggle_futuros {
+  min-width: 120px;
+}
+
+/* ======= CABEÇALHOS PADRÃO DAS TABELAS ======= */
+.table thead {
+  background-color: #000 !important;  /* fundo preto */
+  color: #fff !important;              /* texto branco */
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* ======= LINHAS ======= */
+.table tbody tr:nth-child(even) {
+  background-color: #f2f2f2; /* linha par - cinza claro */
+}
+
+.table tbody tr:nth-child(odd) {
+  background-color: #ffffff; /* linha ímpar - branca */
+}
+
+/* ======= TEXTO ======= */
+.table td, .table th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ======= AJUSTES DE TAMANHO ======= */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+/* ======= CABEÇALHO PADRÃO PRETO / LETRAS BRANCAS ======= */
+#classificacao_container table thead,
+#futuros_container table thead,
+#matches_container table thead,
+#cartoes_container table thead {
+  background-color: #000 !important;
+  color: #fff !important;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* ======= CORPO (ZEBRADO) ======= */
+#classificacao_container table tbody tr:nth-child(even),
+#futuros_container table tbody tr:nth-child(even),
+#matches_container table tbody tr:nth-child(even),
+#cartoes_container table tbody tr:nth-child(even) {
+  background-color: #f2f2f2 !important;
+}
+
+#classificacao_container table tbody tr:nth-child(odd),
+#futuros_container table tbody tr:nth-child(odd),
+#matches_container table tbody tr:nth-child(odd),
+#cartoes_container table tbody tr:nth-child(odd) {
+  background-color: #ffffff !important;
+}
+
+/* ======= TEXTO CENTRALIZADO ======= */
+#classificacao_container table td, #classificacao_container table th,
+#futuros_container table td, #futuros_container table th,
+#matches_container table td, #matches_container table th,
+#cartoes_container table td, #cartoes_container table th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ======= AJUSTE EXTRA PARA TABELAS GERADAS PELO PANDAS ======= */
+#matches_container table.dataframe thead th,
+#cartoes_container table.dataframe thead th {
+  background-color: #000 !important;
+  color: #fff !important;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* ======= CORES PARA CHANCES DE VITÓRIA ======= */
+.prob-alta {
+  color: #0a7a0a;
+  font-weight: bold;
+}
+
+.prob-media {
+  color: #b58900;
+  font-weight: 600;
+}
+
+.prob-baixa {
+  color: #c1121f;
+  font-weight: bold;
+}
