@@ -212,37 +212,61 @@ def adicionar_jogo_futuro_db(data_str, time1, time2):
 def analisar_jogos_futuros_db(time):
     conn = get_conn()
     df_fut = pd.read_sql("SELECT * FROM jogos_futuros", conn)
+    df_tab = pd.read_sql("SELECT * FROM tabela", conn, index_col="Time")
     conn.close()
 
     if df_fut.empty:
         return pd.DataFrame(), f"Nenhum jogo futuro encontrado para {time}."
 
-    # Converte datas para datetime
+    # Converter datas
     df_fut['Data_dt'] = pd.to_datetime(df_fut['Data'], format='%d/%m/%Y', errors='coerce')
-
-    # Data atual
     hoje = datetime.now().date()
-
-    # Filtra somente jogos com data >= hoje
     df_fut = df_fut[df_fut['Data_dt'].dt.date >= hoje]
 
-    # Filtra apenas jogos do time selecionado
-    jogos_time = df_fut[(df_fut['Time1'] == time) | (df_fut['Time2'] == time)]
+    # Filtrar jogos do time selecionado
+    jogos_time = df_fut[(df_fut['Time1'] == time) | (df_fut['Time2'] == time)].copy()
+    if jogos_time.empty:
+        return pd.DataFrame(), f"Nenhum jogo futuro encontrado para {time}."
 
-    # Ordena corretamente por data (do mais próximo ao mais distante)
-    jogos_time = jogos_time.sort_values(by='Data_dt', ascending=True).reset_index(drop=True)
+    # Calcular “força” com base nos pontos
+    max_pontos = df_tab['Pontos'].max()
+    forca_time = df_tab.at[time, 'Pontos'] / max_pontos
 
-    # Calcula resumo
-    jogos_restantes = len(jogos_time)
-    pontos_possiveis = jogos_restantes * 3
+    # Gerar estimativa de probabilidade
+    prob_list = []
+    for _, row in jogos_time.iterrows():
+        adversario = row['Time2'] if row['Time1'] == time else row['Time1']
+        forca_adv = df_tab.at[adversario, 'Pontos'] / max_pontos
+        prob = 0.5 + (forca_time - forca_adv) * 0.4
+        prob = max(0.05, min(0.95, prob))  # limite 5–95%
+
+        # Define cor de acordo com o valor
+        if prob >= 0.6:
+            classe = "prob-alta"
+        elif prob >= 0.4:
+            classe = "prob-media"
+        else:
+            classe = "prob-baixa"
+
+        # HTML com tooltip explicativo
+        prob_html = (
+            f"<span class='{classe}' title='Baseado na diferença de pontos atual entre {time} e {adversario}'>"
+            f"{prob*100:.1f}%</span>"
+        )
+        prob_list.append(prob_html)
+
+    jogos_time['Chance de Vitória'] = prob_list
+    jogos_time = jogos_time.sort_values(by='Data_dt').reset_index(drop=True)
+    jogos_time.drop(columns=['Data_dt'], inplace=True)
 
     resumo = (
-        f"{jogos_restantes} jogo(s) futuro(s) restantes para {time} — "
-        f"{pontos_possiveis} ponto(s) ainda possível(is)."
+        f"{len(jogos_time)} jogo(s) futuro(s) restantes para {time} — "
+        f"{len(jogos_time)*3} ponto(s) ainda possível(is)."
     )
 
-    # Remove coluna auxiliar de datetime antes de retornar
-    return jogos_time.drop(columns=['Data_dt']), resumo
+    # Quando usamos to_html, o Pandas escapa tags por padrão. Desligamos isso mais adiante.
+    return jogos_time, resumo
+
 
 def calcular_probabilidades(time):
     conn = get_conn()
@@ -479,7 +503,7 @@ def action_get_fut_analysis():
     return jsonify({
         "success": True,
         "resumo": resumo,
-        "jogos_html": jogos_df.to_html(classes="table table-striped table-sm", index=False),
+        "jogos_html": jogos_df.to_html(classes="table table-striped table-sm text-center align-middle", index=False, escape=False),
         "prob_html": prob_df.to_html(classes="table table-striped table-sm", index=False)
     })
 
@@ -509,7 +533,6 @@ if __name__ == '__main__':
         local_ip = "127.0.0.1"
     print(f"\n✅ Servidor rodando em: http://{local_ip}:5000\n")
     app.run(host='0.0.0.0', port=5000, debug=True)
-
 
 ================================================================================================
 ================================================================================================
@@ -981,3 +1004,68 @@ h1, h2, h3 {
   font-weight: bold;
   text-transform: uppercase;
 }
+
+/* ======= CORES PARA CHANCES DE VITÓRIA ======= */
+.prob-alta {
+  color: #0a7a0a;
+  font-weight: bold;
+}
+
+.prob-media {
+  color: #b58900;
+  font-weight: 600;
+}
+
+.prob-baixa {
+  color: #c1121f;
+  font-weight: bold;
+}
+
+/* ======= AJUSTE PARA TABELAS DE JOGOS FUTUROS ======= */
+#futuros_container table td,
+#fut_jogos table td {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+}
+
+#futuros_container table th,
+#fut_jogos table th {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+/* ======= AJUSTE PARA TABELAS DE JOGOS FUTUROS ======= */
+#futuros_container table td,
+#fut_jogos table td {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 4px 6px;
+}
+
+#futuros_container table th,
+#fut_jogos table th {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+/* ======= AJUSTE PARA TABELA DE CARTÕES ======= */
+#cartoes_container table td,
+#cartoes_container table th {
+  white-space: nowrap;        /* impede quebra de linha */
+  font-size: 0.85rem;         /* reduz levemente a fonte */
+  padding: 4px 6px;           /* diminui o padding */
+}
+
+/* aplica truncamento com reticências apenas à coluna de jogador */
+#cartoes_container table td:nth-child(3) {
+  max-width: 160px;           /* largura limite para nomes */
+  overflow: hidden;
+  text-overflow: ellipsis;    /* adiciona "..." se passar do limite */
+  white-space: nowrap;
+}
+
+
+
+
+
