@@ -14,31 +14,26 @@
     <!-- CLASSIFICAÇÃO -->
     <div class="tab-pane fade show active" id="classificacao" role="tabpanel">
       <div id="classificacao_container">Carregando...</div>
-      <small class="text-muted">Tabela atualizada dinâmicamente.</small>
+      <small class="text-muted">Tabela atualizada dinamicamente.</small>
     </div>
 
     <!-- JOGOS -->
     <div class="tab-pane fade" id="jogos" role="tabpanel">
       <h5>Adicionar Resultado</h5>
       <form id="form_add_result" class="row g-2 mb-3">
-        <div class="col-md-2"><input name="data" class="form-control" placeholder="Data (DD/MM/AAAA)" value="{{ (None)|default('') }}"></div>
-
+        <div class="col-md-2"><input name="data" class="form-control" placeholder="Data (DD/MM/AAAA)"></div>
         <div class="col-md-3">
           <select name="time1" class="form-select" required>
             {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
           </select>
         </div>
-
         <div class="col-md-1"><input name="g1" type="number" class="form-control" value="0" required></div>
-
         <div class="col-md-3">
           <select name="time2" class="form-select" required>
             {% for t in times_list %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
           </select>
         </div>
-
         <div class="col-md-1"><input name="g2" type="number" class="form-control" value="0" required></div>
-
         <div class="col-md-2"><button class="btn btn-success" type="submit">Adicionar</button></div>
       </form>
 
@@ -129,18 +124,41 @@
 </div>
 
 <script>
-  // Carrega conteúdo inicial das abas
+  // ===== FUNÇÃO PARA MOSTRAR / RECOLHER JOGOS FUTUROS =====
+  function configurarToggleFuturos() {
+    const tabela = document.querySelector('#tabela_futuros tbody');
+    const btn = document.getElementById('btn_toggle_futuros');
+    if (!tabela || !btn) return;
+
+    const linhas = tabela.querySelectorAll('tr');
+    linhas.forEach((tr, idx) => {
+      if (idx >= 5) tr.style.display = 'none';
+    });
+
+    let expandido = false;
+    btn.addEventListener('click', () => {
+      expandido = !expandido;
+      linhas.forEach((tr, idx) => {
+        tr.style.display = expandido ? '' : (idx >= 5 ? 'none' : '');
+      });
+      btn.textContent = expandido ? 'Recolher' : 'Mostrar todos';
+    });
+  }
+
+  // ===== CARREGAR TABELAS INICIAIS =====
   async function load_all() {
     document.getElementById('classificacao_container').innerHTML = await (await fetch('/api/classificacao')).text();
     document.getElementById('matches_container').innerHTML = await (await fetch('/api/matches')).text();
     document.getElementById('futuros_container').innerHTML = await (await fetch('/api/jogos_futuros')).text();
     document.getElementById('cartoes_container').innerHTML = await (await fetch('/api/cartoes')).text();
+    configurarToggleFuturos(); // ativa o botão
   }
 
+  // ===== AO CARREGAR A PÁGINA =====
   window.addEventListener('load', () => {
     load_all();
 
-    // ADD RESULT
+    // === ADD RESULT ===
     document.getElementById('form_add_result').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = new FormData(e.target);
@@ -156,37 +174,33 @@
       }
     });
 
-    // UPDATE
-    document.getElementById('btn_update_result').addEventListener('click', async (ev) => {
-      ev.preventDefault();
+    // === UPDATE RESULT ===
+    document.getElementById('btn_update_result').addEventListener('click', async (e) => {
+      e.preventDefault();
       const form = new FormData(document.getElementById('form_edit_result'));
       const res = await fetch('/action/update_result', { method: 'POST', body: form });
       const j = await res.json();
+      document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-' + (j.success ? 'success' : 'danger') + '">' + j.msg + '</div>';
       if (j.success) {
         document.getElementById('classificacao_container').innerHTML = j.classificacao_html;
         document.getElementById('matches_container').innerHTML = j.matches_html;
-        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-success">'+j.msg+'</div>';
-      } else {
-        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-danger">'+j.msg+'</div>';
       }
     });
 
-    // DELETE
-    document.getElementById('btn_delete_result').addEventListener('click', async (ev) => {
-      ev.preventDefault();
+    // === DELETE RESULT ===
+    document.getElementById('btn_delete_result').addEventListener('click', async (e) => {
+      e.preventDefault();
       const form = new FormData(document.getElementById('form_edit_result'));
       const res = await fetch('/action/delete_result', { method: 'POST', body: form });
       const j = await res.json();
+      document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-' + (j.success ? 'success' : 'danger') + '">' + j.msg + '</div>';
       if (j.success) {
         document.getElementById('classificacao_container').innerHTML = j.classificacao_html;
         document.getElementById('matches_container').innerHTML = j.matches_html;
-        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-success">'+j.msg+'</div>';
-      } else {
-        document.getElementById('jogos_msg').innerHTML = '<div class="alert alert-danger">'+j.msg+'</div>';
       }
     });
 
-    // ADD FUTURO
+    // === ADD FUTURO ===
     document.getElementById('form_add_futuro').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = new FormData(e.target);
@@ -194,10 +208,11 @@
       const j = await res.json();
       if (j.success) {
         document.getElementById('futuros_container').innerHTML = j.futuros_html;
+        configurarToggleFuturos(); // reativa o botão
       }
     });
 
-    // ANALISE FUTUROS
+    // === ANALISAR JOGOS FUTUROS ===
     document.getElementById('btn_analise_fut').addEventListener('click', async (e) => {
       e.preventDefault();
       const sel = document.getElementById('fut_time_sel').value;
@@ -211,7 +226,7 @@
       }
     });
 
-    // ADD CARTAO
+    // === ADD CARTÃO ===
     document.getElementById('form_add_cartao').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = new FormData(e.target);
@@ -223,7 +238,6 @@
         e.target.reset();
       }
     });
-
   });
 </script>
 {% endblock %}
