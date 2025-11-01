@@ -196,11 +196,62 @@ def adicionar_jogo_futuro_db(data_str, time1, time2):
 
 def analisar_jogos_futuros_db(time):
     conn = get_conn()
-    df_fut = pd.read_sql("SELECT * FROM jogos_futuros ORDER BY Data ASC", conn)
+    df_fut = pd.read_sql("SELECT * FROM jogos_futuros", conn)
+    df_tab = pd.read_sql("SELECT * FROM tabela", conn, index_col="Time")
     conn.close()
-    jogos_time = df_fut[(df_fut['Time1']==time) | (df_fut['Time2']==time)]
-    resumo = f"{len(jogos_time)} jogo(s) futuro(s) para {time}."
+
+    if df_fut.empty:
+        return pd.DataFrame(), f"Nenhum jogo futuro encontrado para {time}."
+
+    # Converter datas
+    df_fut['Data_dt'] = pd.to_datetime(df_fut['Data'], format='%d/%m/%Y', errors='coerce')
+    hoje = datetime.now().date()
+    df_fut = df_fut[df_fut['Data_dt'].dt.date >= hoje]
+
+    # Filtrar jogos do time selecionado
+    jogos_time = df_fut[(df_fut['Time1'] == time) | (df_fut['Time2'] == time)].copy()
+    if jogos_time.empty:
+        return pd.DataFrame(), f"Nenhum jogo futuro encontrado para {time}."
+
+    # Calcular “força” com base nos pontos
+    max_pontos = df_tab['Pontos'].max()
+    forca_time = df_tab.at[time, 'Pontos'] / max_pontos
+
+    # Gerar estimativa de probabilidade
+    prob_list = []
+    for _, row in jogos_time.iterrows():
+        adversario = row['Time2'] if row['Time1'] == time else row['Time1']
+        forca_adv = df_tab.at[adversario, 'Pontos'] / max_pontos
+        prob = 0.5 + (forca_time - forca_adv) * 0.4
+        prob = max(0.05, min(0.95, prob))  # limite 5–95%
+
+        # Define cor de acordo com o valor
+        if prob >= 0.6:
+            classe = "prob-alta"
+        elif prob >= 0.4:
+            classe = "prob-media"
+        else:
+            classe = "prob-baixa"
+
+        # HTML com tooltip explicativo
+        prob_html = (
+            f"<span class='{classe}' title='Baseado na diferença de pontos atual entre {time} e {adversario}'>"
+            f"{prob*100:.1f}%</span>"
+        )
+        prob_list.append(prob_html)
+
+    jogos_time['Chance de Vitória'] = prob_list
+    jogos_time = jogos_time.sort_values(by='Data_dt').reset_index(drop=True)
+    jogos_time.drop(columns=['Data_dt'], inplace=True)
+
+    resumo = (
+        f"{len(jogos_time)} jogo(s) futuro(s) restantes para {time} — "
+        f"{len(jogos_time)*3} ponto(s) ainda possível(is)."
+    )
+
+    # Quando usamos to_html, o Pandas escapa tags por padrão. Desligamos isso mais adiante.
     return jogos_time, resumo
+
 
 def calcular_probabilidades(time):
     conn = get_conn()
@@ -260,10 +311,59 @@ def index():
 
 @app.route('/api/classificacao')
 def api_classificacao():
-    df = reconstruir_tabela()
-    # converte para HTML (usando classes bootstrap)
-    html = df.to_html(classes="table table-striped table-sm", index=True)
+    df = reconstruir_tabela().reset_index()
+    df.rename(columns={"index": "Pos"}, inplace=True)
+    df["Pos"] = df.index + 1  # garante coluna de posição 1–20
+
+    # Gera HTML manualmente com classes de posição
+    html = """
+    <table class="table table-striped table-sm text-center align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Pos</th>
+          <th>Time</th>
+          <th>Jogos</th>
+          <th>V</th>
+          <th>E</th>
+          <th>D</th>
+          <th>GM</th>
+          <th>GS</th>
+          <th>Pontos</th>
+        </tr>
+      </thead>
+      <tbody>
+    """
+
+    for i, row in df.iterrows():
+        pos = row["Pos"]
+        if pos <= 4:
+            cls = "pos-top4"
+        elif pos <= 6:
+            cls = "pos-liberta"
+        elif pos <= 12:
+            cls = "pos-sulamericana"
+        elif pos >= 17:
+            cls = "pos-rebaixado"
+        else:
+            cls = ""
+
+        html += f"""
+        <tr>
+          <td class="{cls}">{pos}</td>
+          <td>{row['Time']}</td>
+          <td>{row['Jogos']}</td>
+          <td>{row['V']}</td>
+          <td>{row['E']}</td>
+          <td>{row['D']}</td>
+          <td>{row['GM']}</td>
+          <td>{row['GS']}</td>
+          <td>{row['Pontos']}</td>
+        </tr>
+        """
+
+    html += "</tbody></table>"
     return html
+
 
 @app.route('/api/matches')
 def api_matches():
@@ -273,8 +373,40 @@ def api_matches():
 
 @app.route('/api/jogos_futuros')
 def api_jogos_futuros():
-    df = pd.read_sql("SELECT * FROM jogos_futuros ORDER BY id DESC", get_conn())
-    html = df.to_html(classes="table table-striped table-sm", index=False)
+    import pandas as pd
+    conn = get_conn()
+    df = pd.read_sql("SELECT * FROM jogos_futuros", conn)
+    conn.close()
+
+    if df.empty:
+        return "<p class='text-muted'>Nenhum jogo futuro cadastrado.</p>"
+
+    # converter string para datetime p/ ordenar
+    df['Data_dt'] = pd.to_datetime(df['Data'], format='%d/%m/%Y', errors='coerce')
+    df = df.sort_values(by='Data_dt', ascending=True)
+
+    html = """
+    <table id="tabela_futuros" class="table table-striped table-sm align-middle text-center">
+      <thead class="table-dark">
+        <tr><th>ID</th><th>Data</th><th>Mandante</th><th>Visitante</th></tr>
+      </thead>
+      <tbody>
+    """
+    for i, row in df.iterrows():
+        html += f"""
+        <tr data-sort="{i}">
+          <td>{row['id']}</td>
+          <td>{row['Data']}</td>
+          <td>{row['Time1']}</td>
+          <td>{row['Time2']}</td>
+        </tr>
+        """
+    html += "</tbody></table>"
+    html += """
+    <div class='text-center mt-2'>
+      <button id='btn_toggle_futuros' class='btn btn-sm btn-outline-secondary'>Mostrar todos</button>
+    </div>
+    """
     return html
 
 @app.route('/api/cartoes')
@@ -356,7 +488,7 @@ def action_get_fut_analysis():
     return jsonify({
         "success": True,
         "resumo": resumo,
-        "jogos_html": jogos_df.to_html(classes="table table-striped table-sm", index=False),
+        "jogos_html": jogos_df.to_html(classes="table table-striped table-sm text-center align-middle", index=False, escape=False),
         "prob_html": prob_df.to_html(classes="table table-striped table-sm", index=False)
     })
 
